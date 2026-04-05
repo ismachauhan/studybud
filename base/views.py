@@ -16,8 +16,10 @@ from .forms import RoomForm
 # ]
 def loginPage(request):
     page='login'
+
     if request.user.is_authenticated:
         return redirect('home')
+    
     if request.method=='POST':
         username=request.POST.get('username').lower()
         password=request.POST.get('password')
@@ -44,9 +46,10 @@ def logoutUser(request):
 
 def registerPage(request):
     form=UserCreationForm()
+    
     if request.method=='POST':
-
         form=UserCreationForm(request.POST)
+
         if form.is_valid():
             user=form.save(commit=False)
             user.username=user.username.lower()
@@ -67,13 +70,15 @@ def home(request):
                               )
     topics=Topic.objects.all()
     room_count=rooms.count()
-    context={'rooms': rooms,'topics':topics,'room_count':room_count}
+    room_messages=Message.objects.filter(Q(room__name__icontains=q))
+
+    context={'rooms': rooms,'topics':topics,'room_count':room_count,'room_messages':room_messages}
     return render(request,'base/home.html',context)
 
 
 def room(request, pk):
     room=Room.objects.get(id=pk)
-    room_messages=room.message_set.all().order_by('-created')
+    room_messages=room.message_set.all()
     participants=room.participants.all()
 
     if request.method=='POST':
@@ -92,8 +97,10 @@ def room(request, pk):
 @login_required(login_url='login')
 def createRoom(request):
     form=RoomForm()
+
     if request.method=='POST':
         form=RoomForm(request.POST)
+
         if form.is_valid():
             form.save()
             return redirect('home')
@@ -108,8 +115,10 @@ def updateRoom(request,pk):
 
     if request.user!=room.host:
         return HttpResponse("you are not allowed here!!")
+    
     if request.method=='POST':
         form=RoomForm(request.POST,instance=room)
+
         if form.is_valid():
             form.save()
             return redirect('home')
